@@ -7,11 +7,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
+import java.text.ParseException;
+import java.util.*;
+import java.text.SimpleDateFormat;
 
 @RestController
 public class UserController {
@@ -109,12 +107,11 @@ public class UserController {
     public Map<String, Object> getinfo(@RequestBody Map params) {
         String email= (String) params.get("email");
         Map<String,Object> response = new HashMap<>();
-
-        String select_sql = "SELECT name,email,avatar,gender,phone,birthday,address FROM User WHERE email = ?;";
+        System.out.println(email);
+        String select_sql = "SELECT email,name,avatar,gender,phone,birthday,address FROM User WHERE email = ?;";
 
         // 通过jdbcTemplate查询数据库
         Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email);
-
         response.put("code", 200);
         response.put("msg", "get info success");
         response.putAll(res);
@@ -123,13 +120,24 @@ public class UserController {
     }
 
     @PostMapping("/info")
-    public Map<String, Object> info(@RequestBody Map params) {
+    public Map<String, Object> info(@RequestBody Map params) throws ParseException {
         String email= (String) params.get("email");
         String name= (String) params.get("name");
         String avatar= (String) params.get("avatar");
-        String gender= (String) params.get("gender");
+        Integer gender= (Integer) params.get("gender");
         String phone= (String) params.get("phone");
         String birthday= (String) params.get("birthday");
+        System.out.println(birthday);
+        String day = birthday.substring(0,10);
+        System.out.println(day);
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Date date = simpleDateFormat.parse(day);
+        System.out.println(date);
+        Calendar calendar = new GregorianCalendar();
+        calendar.setTime(date);
+        calendar.add(calendar.DATE,1); //把日期往后增加一天,整数  往后推,负数往前移动
+        date=calendar.getTime(); //这个时间就是日期往后推一天的结果
+        System.out.println(date);
         String address= (String) params.get("address");
         Map<String,Object> response = new HashMap<>();
 
@@ -145,7 +153,8 @@ public class UserController {
             response.put("msg","user not found");
         }
         else{
-            int i = jdbcTemplate.update(update_sql,name,avatar,gender,phone,birthday,address,email);
+            int i = jdbcTemplate.update(update_sql,name,avatar,gender,phone,date,address,email);
+            System.out.println(date);
             System.out.println("update success: " + i + " rows affected");
             response.put("code", 200);
             response.put("msg", "change info success");
