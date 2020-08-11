@@ -3,6 +3,7 @@ package com.Diamond_Doc.demo.controller;
 import com.Diamond_Doc.demo.controller.EmailSender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,9 +19,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.text.ParseException;
-import java.util.*;
 
-
+@CrossOrigin
 @RestController
 public class UserController {
 
@@ -30,6 +30,10 @@ public class UserController {
     @Autowired
     private EmailSender emailSender;
 
+    @RequestMapping("/")
+    public String index(){
+        return "hello world";
+    }
     @PostMapping("/signup")
     public Map<String, Object> signup(@RequestBody Map params) {
         String name= (String) params.get("uname");
@@ -65,7 +69,7 @@ public class UserController {
         Map<String,Object> response = new HashMap<>();
 
 
-        String select_sql = "SELECT * FROM User WHERE email = ? and password = ?;";
+        String select_sql = "SELECT name,email,avatar,gender,phone,UNIX_TIMESTAMP(birthday) as birthday,address FROM User WHERE email = ? and password = ?;";
 
         // 通过jdbcTemplate查询数据库
         Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email,password);
@@ -76,6 +80,9 @@ public class UserController {
         else{
             response.put("code",200);
             response.put("msg","login success");
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+            String birthdat_str=format.format(new Date((long)res.get("birthday")*1000L));
+            res.put("birthday",birthdat_str);
             response.putAll(res);
         }
         System.out.println(response);
@@ -131,13 +138,16 @@ public class UserController {
         String email= (String) params.get("email");
         Map<String,Object> response = new HashMap<>();
 
-        String select_sql = "SELECT name,email,avatar,gender,phone,birthday,address FROM User WHERE email = ?;";
+        String select_sql = "SELECT nname,email,avatar,gender,phone,UNIX_TIMESTAMP(birthday) as birthday,address FROM User WHERE email = ?;";
 
         // 通过jdbcTemplate查询数据库
         Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email);
 
         response.put("code", 200);
         response.put("msg", "get info success");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        String birthdat_str=format.format(new Date((long)res.get("birthday")*1000L));
+        res.put("birthday",birthdat_str);
         response.putAll(res);
         System.out.println(response);
         return response;
@@ -152,17 +162,11 @@ public class UserController {
         String phone= (String) params.get("phone");
         String birthday= (String) params.get("birthday");
         String day = birthday.substring(0,10);
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        Date date = (Date) simpleDateFormat.parse(day);
-        Calendar calendar = new GregorianCalendar();
-        calendar.setTime(date);
-        calendar.add(calendar.DATE,1); //把日期往后增加一天,整数  往后推,负数往前移动
-        date= (Date) calendar.getTime(); //这个时间就是日期往后推一天的结果
         String address= (String) params.get("address");
         Map<String,Object> response = new HashMap<>();
 
         String select_sql = "SELECT * FROM User WHERE email = ?;";
-        String update_sql = "UPDATE User SET name=?,avatar=?,gender=?,phone=?,birthday=?,address=? WHERE email=?;";
+        String update_sql = "UPDATE User SET name=?,avatar=?,gender=?,phone=?,birthday=DATE_ADD(str_to_date(?, '%Y-%m-%d'),INTERVAL 1 DAY),address=? WHERE email=?;";
 
 
         // 通过jdbcTemplate查询数据库
@@ -173,7 +177,7 @@ public class UserController {
             response.put("msg","user not found");
         }
         else{
-            int i = jdbcTemplate.update(update_sql,name,avatar,gender,phone,birthday,address,email);
+            int i = jdbcTemplate.update(update_sql,name,avatar,gender,phone,day,address,email);
             System.out.println("update success: " + i + " rows affected");
             response.put("code", 200);
             response.put("msg", "change info success");
