@@ -80,9 +80,11 @@ public class UserController {
         else{
             response.put("code",200);
             response.put("msg","login success");
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-            String birthdat_str=format.format(new Date((long)res.get("birthday")*1000L));
-            res.put("birthday",birthdat_str);
+            if(res.containsKey("birthday")){
+                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
+                res.put("birthday",birthday_str);
+            }
             response.putAll(res);
         }
         System.out.println(response);
@@ -138,17 +140,18 @@ public class UserController {
         String email= (String) params.get("email");
         Map<String,Object> response = new HashMap<>();
 
-        String select_sql = "SELECT nname,email,avatar,gender,phone,UNIX_TIMESTAMP(birthday) as birthday,address FROM User WHERE email = ?;";
+        String select_sql = "SELECT name,email,avatar,gender,phone,UNIX_TIMESTAMP(birthday) as birthday,address FROM User WHERE email = ?;";
 
         // 通过jdbcTemplate查询数据库
         Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email);
 
         response.put("code", 200);
         response.put("msg", "get info success");
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        String birthdat_str=format.format(new Date((long)res.get("birthday")*1000L));
-        res.put("birthday",birthdat_str);
-        response.putAll(res);
+        if(res.containsKey("birthday")){
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+            String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
+            res.put("birthday",birthday_str);
+        }
         System.out.println(response);
         return response;
     }
