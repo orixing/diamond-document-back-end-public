@@ -73,6 +73,7 @@ public class UserController {
 
         // 通过jdbcTemplate查询数据库
         Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email,password);
+        System.out.println(res);
         if(res.isEmpty()){
             response.put("code",401);
             response.put("msg","login fail");
@@ -80,7 +81,7 @@ public class UserController {
         else{
             response.put("code",200);
             response.put("msg","login success");
-            if(res.containsKey("birthday")){
+            if(res.get("birthday")!=null){
                 SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
                 String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
                 res.put("birthday",birthday_str);
@@ -147,7 +148,7 @@ public class UserController {
 
         response.put("code", 200);
         response.put("msg", "get info success");
-        if(res.containsKey("birthday")){
+        if(res.get("birthday")!=null){
             SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
             String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
             res.put("birthday",birthday_str);
