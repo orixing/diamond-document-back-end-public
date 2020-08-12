@@ -13,11 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.text.ParseException;
 
 @CrossOrigin
@@ -96,19 +92,19 @@ public class UserController {
     public Map<String, Object> home(@RequestBody Map params) {
         Integer id= (Integer) params.get("id");
         Integer kind= (Integer) params.get("kind");
-        Map<String,Object> response = new HashMap<>();
+        Map<String,Object> response = new LinkedHashMap();
         String select_sql="";
         if(kind==1)
         {
-            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Browse.browse_user = ? and Browse.doc_id = Doc.id ORDER BY Browse.browse_time desc;";
+            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Browse.browse_user = ? and Browse.doc_id = Doc.id ORDER BY Browse.browse_time desc;";
         }
         if(kind==2)
         {
-            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.create_user = ? ORDER BY Doc.create_time desc;";
+            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.create_user = ? ORDER BY Doc.create_time desc;";
         }
         if(kind==3)
         {
-            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
+            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
         }
 
         String select_name_sql="SELECT name FROM User WHERE id=?;";
@@ -118,20 +114,22 @@ public class UserController {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         int i=0;
         for (Map<String, Object> map : list) {
-            tmp.clear();
+            System.out.println(map);
+            tmp=new HashMap<String, Object>();
             int user_id= (int) map.get("create_user");
             String create_user=jdbcTemplate.queryForMap(select_name_sql,user_id).get("name").toString();
             user_id= (int) map.get("modify_user");
             String modify_user=jdbcTemplate.queryForMap(select_name_sql,user_id).get("name").toString();
             System.out.println(map.get("create_time"));
-            String browse_time =format.format(new Date((long)map.get("create_time")*1000L));
+            String create_time =format.format(new Date((long)map.get("create_time")*1000L));
             String modify_time =format.format(new Date((long)map.get("modify_time")*1000L));
+            tmp.put("doc_id",map.get("id"));
             tmp.put("title",map.get("title"));
             tmp.put("create_user",create_user);
-            tmp.put("create_time",browse_time);
+            tmp.put("create_time",create_time);
             tmp.put("modify_user",modify_user);
             tmp.put("modify_time",modify_time);
-            response.put("user"+i++,tmp);
+            response.put("doc"+i++,tmp);
         }
         System.out.println(response);
         return response;
@@ -290,5 +288,11 @@ public class UserController {
             response.put("msg", "upload fail");
         }
         return response;
+    }
+
+    public static String toBinary(int num, int digits) {
+        int value = 1 << digits | num;
+        String bs = Integer.toBinaryString(value); //0x20 | 这个是为了保证这个string长度是6位数
+        return  bs.substring(1);
     }
 }

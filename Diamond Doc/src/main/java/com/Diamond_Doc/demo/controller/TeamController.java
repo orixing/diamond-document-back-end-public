@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -189,6 +190,30 @@ public class TeamController {
         else{
             response.put("code", 401);
             response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+
+    @PostMapping("/searchTeam")
+    public Map<String, Object> searchTeam(@RequestBody Map params) {
+        String team_name= (String) params.get("team_name");
+        Map<String,Object> response = new LinkedHashMap<>();
+        Map<String, Object> tmp=new HashMap<String, Object>();
+
+        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user FROM Team,User WHERE Team.create_user=User.id Team.name LIKE '%?%';";
+
+        int i=0;
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,team_name);
+        for (Map<String, Object> map : list){
+            tmp=new HashMap<String, Object>();
+            int id = (int) map.get("id");
+            String create_user = (String) map.get("create_user");
+            tmp.put("id",(int) map.get("id"));
+            tmp.put("team_name",map.get("name").toString());
+            tmp.put("create_user",map.get("create_user").toString());
+            response.put("team"+i++,tmp);
         }
         System.out.println(response);
         return response;
