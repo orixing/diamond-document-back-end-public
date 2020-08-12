@@ -123,8 +123,8 @@ public class UserController {
             String create_user=jdbcTemplate.queryForMap(select_name_sql,user_id).get("name").toString();
             user_id= (int) map.get("modify_user");
             String modify_user=jdbcTemplate.queryForMap(select_name_sql,user_id).get("name").toString();
-            System.out.println(map.get("browse_time"));
-            String browse_time =format.format(new Date((long)map.get("browse_time")*1000L));
+            System.out.println(map.get("create_time"));
+            String browse_time =format.format(new Date((long)map.get("create_time")*1000L));
             String modify_time =format.format(new Date((long)map.get("modify_time")*1000L));
             tmp.put("title",map.get("title"));
             tmp.put("create_user",create_user);

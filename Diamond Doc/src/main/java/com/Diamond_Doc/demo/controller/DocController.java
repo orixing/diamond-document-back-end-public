@@ -71,6 +71,7 @@ public class DocController {
 
     @PostMapping("/save_new_doc")
     public Map<String, Object> save_new_doc(@RequestBody Map params) {
+        System.out.println(params);
         int team_id=(int)params.get("team_id");//0-个人文档，其他-团队id
         String title= (String) params.get("title");
         String content= (String) params.get("content");
@@ -124,7 +125,7 @@ public class DocController {
         Map<String,Object> response = new HashMap<>();
 
         String select_sql = "SELECT id FROM User WHERE email = ?;";
-        String update_sql = "UPDATE Doc SET title=?,content=?,modify_user=?,modify_time+=1 where id=?;";
+        String update_sql = "UPDATE Doc SET title=?,content=?,modify_user=?,modify_times=modify_times+1 where id=?;";
         String insert_sql = "INSERT INTO Modify(doc_id,modify_user) values(?,?);";
         String delete_sql = "DELETE FROM Edit WHERE doc_id=? and edit_user=?;";
 
