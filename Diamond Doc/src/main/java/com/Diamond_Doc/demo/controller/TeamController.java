@@ -34,7 +34,7 @@ public class TeamController {
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             int i = jdbcTemplate.update(insert1_sql,team_name, id);
-            int key=(int)jdbcTemplate.queryForMap("SELECT LAST_INSERT_ID() as key;").get("key");
+            int key=Integer.parseInt(jdbcTemplate.queryForMap("SELECT LAST_INSERT_ID() as 'key';").get("key").toString());
             i+=jdbcTemplate.update(insert2_sql,key,id);
             System.out.println("update success: " + i + " rows affected");
             response.put("code", 200);

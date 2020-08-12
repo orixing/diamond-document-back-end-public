@@ -100,15 +100,15 @@ public class UserController {
         String select_sql="";
         if(kind==1)
         {
-            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Browse.browse_time) as browse_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Browse.browse_user = ? and Browse.doc_id = Doc.id ORDER BY Browse.browse_time desc;";
+            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Browse.browse_user = ? and Browse.doc_id = Doc.id ORDER BY Browse.browse_time desc;";
         }
         if(kind==2)
         {
-            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Browse.browse_time) as browse_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Doc.create_user = ? and Browse.doc_id = Doc.id ORDER BY Doc.create_time desc;";
+            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.create_user = ? ORDER BY Doc.create_time desc;";
         }
         if(kind==3)
         {
-            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Browse.browse_time) as browse_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
+            select_sql = "SELECT Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
         }
 
         String select_name_sql="SELECT name FROM User WHERE id=?;";
@@ -128,7 +128,7 @@ public class UserController {
             String modify_time =format.format(new Date((long)map.get("modify_time")*1000L));
             tmp.put("title",map.get("title"));
             tmp.put("create_user",create_user);
-            tmp.put("browse_time",browse_time);
+            tmp.put("create_time",browse_time);
             tmp.put("modify_user",modify_user);
             tmp.put("modify_time",modify_time);
             response.put("user"+i++,tmp);
@@ -272,7 +272,7 @@ public class UserController {
 
         String savePath = UPLOAD_FOLDER;
         String orginalFilename = file.getOriginalFilename();
-        String suffix = "wrong_file";
+        String suffix = ".wrong_file";
         int beginIndex = orginalFilename.lastIndexOf(".");
         if (beginIndex != -1) {
             suffix = orginalFilename.substring(beginIndex);
@@ -283,7 +283,7 @@ public class UserController {
             file.transferTo(dest);
             response.put("code", 200);
             response.put("msg", "upload success");
-            response.put("url", "http://127.0.0.1:8080/img/"+filename);//175.24.53.216
+            response.put("url", "http://175.24.53.216:8080/img/"+filename);//175.24.53.216
         } catch (IOException e) {
             e.printStackTrace();
             response.put("code", 200);
