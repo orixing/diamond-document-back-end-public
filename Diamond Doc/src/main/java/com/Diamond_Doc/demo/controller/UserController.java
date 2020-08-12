@@ -148,11 +148,13 @@ public class UserController {
 
         response.put("code", 200);
         response.put("msg", "get info success");
+        System.out.println(res);
         if(res.get("birthday")!=null){
             SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
             String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
             res.put("birthday",birthday_str);
         }
+        response.putAll(res);
         System.out.println(response);
         return response;
     }
