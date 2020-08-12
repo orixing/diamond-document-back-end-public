@@ -132,9 +132,7 @@ public class TeamController {
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             if(jdbcTemplate.queryForList(select2_sql,team_id,id).size()>0){
-                int i = jdbcTemplate.update(delete1_sql,team_id);
-                i+= jdbcTemplate.update(delete2_sql,team_id);
-                i+= jdbcTemplate.update(delete3_sql,team_id);
+                int i = jdbcTemplate.update(delete3_sql,team_id);
                 System.out.println("update success: " + i + " rows affected");
                 response.put("code", 200);
                 response.put("msg", "eliminate team success");
