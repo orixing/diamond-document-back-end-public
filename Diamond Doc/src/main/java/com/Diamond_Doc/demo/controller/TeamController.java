@@ -201,8 +201,8 @@ public class TeamController {
         Map<String,Object> response = new LinkedHashMap<>();
         Map<String, Object> tmp=new HashMap<String, Object>();
 
-        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user FROM Team,User WHERE Team.create_user=User.id Team.name LIKE '%?%';";
-
+        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user FROM Team,User WHERE Team.name = ?;";
+        // WHERE Team.name LIKE '%?%'
         int i=0;
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,team_name);
