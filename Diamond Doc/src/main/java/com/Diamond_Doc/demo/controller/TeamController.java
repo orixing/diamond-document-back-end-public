@@ -203,18 +203,18 @@ public class TeamController {
         Map<String,Object> response = new LinkedHashMap<>();
         Map<String, Object> tmp=new HashMap<String, Object>();
 
-        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user FROM Team,User WHERE Team.create_user=User.id Team.name LIKE '%?%';";
-
+        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user_name FROM Team,User " +
+                "WHERE Team.name LIKE CONCAT('%',CONCAT(?,'%')) and User.id=Team.create_user;";
+        System.out.println(select_sql);
         int i=0;
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,team_name);
         for (Map<String, Object> map : list){
             tmp=new HashMap<String, Object>();
             int id = (int) map.get("id");
-            String create_user = (String) map.get("create_user");
             tmp.put("id",(int) map.get("id"));
             tmp.put("team_name",map.get("name").toString());
-            tmp.put("create_user",map.get("create_user").toString());
+            tmp.put("create_user_name",map.get("create_user_name").toString());
             response.put("team"+i++,tmp);
         }
         System.out.println(response);
