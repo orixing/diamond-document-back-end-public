@@ -227,7 +227,8 @@ public class TeamController {
         Map<String,Object> response = new LinkedHashMap<>();
 
         String select1_sql = "SELECT id FROM User WHERE email = ?;";
-        String select2_sql = "SELECT Team.* FROM Team,Member WHERE Team.id=Member.team_id and Member.member_user=?;";
+        String select2_sql = "SELECT Team.id as id,Team.name as name,Team.create_user as create_user,UNIX_TIMESTAMP(Team.create_time) as create_time" +
+                " FROM Team,Member WHERE Team.id=Member.team_id and Member.member_user=?;";
         String select3_sql = "SELECT ;";
 
         // 通过jdbcTemplate查询数据库
