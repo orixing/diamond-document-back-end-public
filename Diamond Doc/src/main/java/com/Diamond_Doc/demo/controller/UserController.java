@@ -64,25 +64,25 @@ public class UserController {
         String password= (String) params.get("password");
         Map<String,Object> response = new HashMap<>();
 
-
-        String select_sql = "SELECT id,name,email,avatar,gender,phone,UNIX_TIMESTAMP(birthday) as birthday,address FROM User WHERE email = ? and password = ?;";
-
+        String select_sql="SELECT id,name,email,avatar,gender,phone,address,UNIX_TIMESTAMP(birthday) as birthday from User WHERE email= ? and password=?;";
         // 通过jdbcTemplate查询数据库
-        Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email,password);
-        System.out.println(res);
-        if(res.isEmpty()){
-            response.put("code",401);
-            response.put("msg","login fail");
-        }
-        else{
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email,password);
+        System.out.println(email);
+        System.out.println(password);
+        if(res.size()>0){
+            Map<String,Object> tmp = res.get(0);
             response.put("code",200);
             response.put("msg","login success");
-            if(res.get("birthday")!=null){
+            if(tmp.get("birthday")!=null){
                 SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-                String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
-                res.put("birthday",birthday_str);
+                String birthday_str=format.format(new Date((long)tmp.get("birthday")*1000L));
+                tmp.replace("birthday",birthday_str);
             }
-            response.putAll(res);
+            response.putAll(tmp);
+        }
+        else{
+            response.put("code",401);
+            response.put("msg","login fail");
         }
         System.out.println(response);
         return response;
@@ -92,8 +92,6 @@ public class UserController {
     public Map<String, Object> home(@RequestBody Map params) {
         Integer id= (Integer) params.get("id");
         Integer kind= (Integer) params.get("kind");
-        System.out.println(id);
-        System.out.println(kind);
         Map<String,Object> response = new LinkedHashMap();
         String select_sql="";
         if(kind==1)
@@ -296,29 +294,5 @@ public class UserController {
         int value = 1 << digits | num;
         String bs = Integer.toBinaryString(value); //0x20 | 这个是为了保证这个string长度是6位数
         return  bs.substring(1);
-    }
-
-    @PostMapping("/myteam")
-    public Map<String, Object> myteam(@RequestBody Map params) {
-        Integer id= (Integer) params.get("id");
-        Map<String,Object> response = new LinkedHashMap();
-
-        String select_sql = "SELECT Join.team_id as team_id FROM Join WHERE Join.member_user = ?";
-        // 通过jdbcTemplate查询数据库
-        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,id);
-
-        Map<String, Object> tmp=new HashMap<String, Object>();
-
-        int i=0;
-        for (Map<String, Object> map : list) {
-            System.out.println(map);
-            tmp.clear();
-            tmp.put("team_id",map.get("team_id"));
-            tmp.put("name","teamname");
-            //tmp.put("name",map.get("name"));
-            response.put("team"+i++,tmp);
-        }
-        System.out.println("发送teams信息"+response);
-        return response;
     }
 }
