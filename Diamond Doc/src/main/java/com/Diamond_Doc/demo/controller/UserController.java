@@ -106,6 +106,10 @@ public class UserController {
         {
             select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
         }
+        if(kind==4)
+        {
+            select_sql = "SELECT id,title,create_user,UNIX_TIMESTAMP(create_time) as create_time,modify_user,UNIX_TIMESTAMP(modify_time) as modify_time FROM Doc WHERE recycle=1 and create_user= ?;";
+        }
 
         String select_name_sql="SELECT name FROM User WHERE id=?;";
         // 通过jdbcTemplate查询数据库
@@ -294,27 +298,5 @@ public class UserController {
         int value = 1 << digits | num;
         String bs = Integer.toBinaryString(value); //0x20 | 这个是为了保证这个string长度是6位数
         return  bs.substring(1);
-    }
-    @PostMapping("/myteam")
-    public Map<String, Object> myteam(@RequestBody Map params) {
-        Integer id= (Integer) params.get("id");
-        Map<String,Object> response = new LinkedHashMap();
-
-        String select_sql = "SELECT Member.team_id as team_id,Team.name as name  FROM Member,Team WHERE Member.member_user = ? and Team.id=team_id";
-        // 通过jdbcTemplate查询数据库
-        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,id);
-
-        Map<String, Object> tmp=new HashMap<String, Object>();
-
-        int i=0;
-        for (Map<String, Object> map : list) {
-            System.out.println(map);
-            tmp=new HashMap<String, Object>();
-            tmp.put("team_id",map.get("team_id"));
-            tmp.put("name",map.get("name"));
-            response.put("team"+i++,tmp);
-        }
-        System.out.println("发送teams信息"+response);
-        return response;
     }
 }

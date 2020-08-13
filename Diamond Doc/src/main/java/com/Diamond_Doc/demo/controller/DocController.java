@@ -33,6 +33,7 @@ public class DocController {
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email,doc_id);
+        System.out.println(res);
         if(res.size()>0){
             int i = jdbcTemplate.update(update_sql,doc_id);
             System.out.println("update success: " + i + " rows affected");
@@ -430,6 +431,29 @@ public class DocController {
         for(Map<String,Object> map:res){
             tmp=jdbcTemplate.queryForMap(select2_sql,doc_id,map.get("member").toString());
             response.put("member"+i++,tmp);
+        }
+        System.out.println(response);
+        return response;
+    }
+
+    @PostMapping("/get_model_content")
+    public Map<String, Object> get_model_content(@RequestBody Map params) {
+        Integer moedl_id= (Integer) params.get("id");
+        Map<String,Object> response = new LinkedHashMap<>();
+        Map<String,Object> tmp = new HashMap<>();
+
+        String select1_sql = "SELECT * FROM Model WHERE id=?;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,moedl_id);
+        if(res.size()>0){
+            response.putAll(res.get(0));
+            response.put("code", 200);
+            response.put("msg", "model not found");
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "model not found");
         }
         System.out.println(response);
         return response;
