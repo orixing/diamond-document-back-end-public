@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -201,20 +203,50 @@ public class TeamController {
         Map<String,Object> response = new LinkedHashMap<>();
         Map<String, Object> tmp=new HashMap<String, Object>();
 
-        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user_name FROM Team,User WHERE Team.name LIKE CONCAT('%',CONCAT(?,'%')) and User.id=Team.create_user;";
-
-        // WHERE Team.name LIKE '%?%'
+        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user_name FROM Team,User " +
+                "WHERE Team.name LIKE CONCAT('%',CONCAT(?,'%')) and User.id=Team.create_user;";
+        System.out.println(select_sql);
         int i=0;
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,team_name);
         for (Map<String, Object> map : list){
             tmp=new HashMap<String, Object>();
             int id = (int) map.get("id");
-            String create_user = (String) map.get("create_user");
             tmp.put("id",(int) map.get("id"));
             tmp.put("team_name",map.get("name").toString());
-            tmp.put("create_user",map.get("create_user_name").toString());
+            tmp.put("create_user_name",map.get("create_user_name").toString());
             response.put("team"+i++,tmp);
+        }
+        System.out.println(response);
+        return response;
+    }
+
+    @PostMapping("/myTeam")
+    public Map<String, Object> myTeam(@RequestBody Map params) {
+        String email= (String) params.get("email");
+        Map<String,Object> response = new LinkedHashMap<>();
+
+        String select1_sql = "SELECT id FROM User WHERE email = ?;";
+        String select2_sql = "SELECT Team.* FROM Team,Member WHERE Team.id=Member.team_id and Member.member_user=?;";
+        String select3_sql = "SELECT ;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id"),i=0;
+            List<Map<String, Object>> list =jdbcTemplate.queryForList(select2_sql,id);
+            for(Map<String, Object> map:list){
+                response.put("team"+i++,map);
+                if(map.get("create_time")!=null){
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                    String create_time_str=format.format(new Date((long)map.get("create_time")*1000L));
+                    map.replace("create_time",create_time_str);
+                }
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
         }
         System.out.println(response);
         return response;

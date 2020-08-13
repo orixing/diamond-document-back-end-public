@@ -226,6 +226,100 @@ public class DocController {
         return response;
     }
 
+    @PostMapping("/like_doc")
+    public Map<String, Object> like_doc(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        Map<String,Object> response = new HashMap<>();
+
+        String select0_sql = "SELECT id FROM User WHERE email = ?;";
+        String select1_sql = "SELECT id FROM Doc WHERE create_user= ? and id=?;";
+        String select2_sql = "SELECT permission FROM Doc WHERE id=?;";
+        String select3_sql = "SELECT permission FROM Permission WHERE doc_id=? and user=?;";
+        String insert_sql = "INSERT INTO Favorite(doc_id,favorite_user) values(?,?);";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            boolean is_create = jdbcTemplate.queryForList(select1_sql,id,doc_id).size()>0;
+            boolean is_share=(jdbcTemplate.queryForList(select2_sql,doc_id).size()>0)&&(((int)jdbcTemplate.queryForList(select2_sql,doc_id).get(0).get("permission"))&0x01)!=0;
+            boolean is_team=(jdbcTemplate.queryForList(select3_sql,doc_id,id).size()>0)&&(((int)jdbcTemplate.queryForList(select3_sql,doc_id,id).get(0).get("permission"))&0x01)!=0;
+            if(is_create||is_share||is_team){
+                int i=jdbcTemplate.update(insert_sql,doc_id,id);
+                System.out.println("update success: " + i + " rows affected");
+                response.put("code", 200);
+                response.put("msg", "like doc");
+            }
+            else{
+                response.put("code", 402);
+                response.put("msg", "permission denied");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+    @PostMapping("/dislike_doc")
+    public Map<String, Object> dislike_doc(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        Map<String,Object> response = new HashMap<>();
+
+        String select0_sql = "SELECT id FROM User WHERE email = ?;";
+        String delete_sql = "DELETE FROM Favorite WHERE doc_id=? and favorite_user=?;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            int i=jdbcTemplate.update(delete_sql,doc_id,id);
+            System.out.println("update success: " + i + " rows affected");
+            response.put("code", 200);
+            response.put("msg", "dislike doc");
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+
+    @PostMapping("/check_favorite_doc")
+    public Map<String, Object> check_favorite_doc(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        Map<String,Object> response = new HashMap<>();
+
+        String select0_sql = "SELECT id FROM User WHERE email = ?;";
+        String select1_sql = "SELECT id FROM Favorite WHERE doc_id=? and favorite_user=?;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            if(jdbcTemplate.queryForList(select1_sql,doc_id,id).size()>0){
+                response.put("flag", 1);
+                response.put("code", 200);
+                response.put("msg", "favorite doc");
+            }
+            else{
+                response.put("flag", 0);
+                response.put("code", 200);
+                response.put("msg", "not favorite doc");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
     @PostMapping("/get_doc")
     public Map<String, Object> get_doc(@RequestBody Map params) {
         Integer doc_id= (Integer) params.get("id");
