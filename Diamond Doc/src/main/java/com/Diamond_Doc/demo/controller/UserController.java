@@ -303,7 +303,7 @@ public class UserController {
         Integer id= (Integer) params.get("id");
         Map<String,Object> response = new LinkedHashMap();
 
-        String select_sql = "SELECT Join.team_id as team_id FROM Join WHERE Join.member_user = ?";
+        String select_sql = "SELECT Member.team_id as team_id,Team.name as name  FROM Member,Team WHERE Member.member_user = ? and Team.id=team_id";
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,id);
 
@@ -312,10 +312,9 @@ public class UserController {
         int i=0;
         for (Map<String, Object> map : list) {
             System.out.println(map);
-            tmp.clear();
+            tmp=new HashMap<String, Object>();
             tmp.put("team_id",map.get("team_id"));
-            tmp.put("name","teamname");
-            //tmp.put("name",map.get("name"));
+            tmp.put("name",map.get("name"));
             response.put("team"+i++,tmp);
         }
         System.out.println("发送teams信息"+response);
