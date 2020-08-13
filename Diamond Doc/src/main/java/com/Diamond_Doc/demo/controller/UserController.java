@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.security.Key;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -25,13 +26,15 @@ public class UserController {
     JdbcTemplate jdbcTemplate;
     @Autowired
     private EmailSender emailSender;
+    private byte[] key_byte={-45,121,89,119,-101,84,33,23,109,13,23,-51,94,90,-104,-52};
+    private Key key = Encrypt.toKey(key_byte);
 
     @RequestMapping("/")
     public String index(){
         return "hello world";
     }
     @PostMapping("/signup")
-    public Map<String, Object> signup(@RequestBody Map params) {
+    public Map<String, Object> signup(@RequestBody Map params) throws Exception {
         String name= (String) params.get("uname");
         String password= (String) params.get("passwd1");
         String email= (String) params.get("email");
@@ -49,7 +52,7 @@ public class UserController {
         }
 
         else {
-            int i = jdbcTemplate.update(insert_sql, name, password, email);
+            int i = jdbcTemplate.update(insert_sql, name, Encrypt.encrypt(password,key), email);
             System.out.println("insert success: " + i + " rows affected");
             response.put("code", 200);
             response.put("msg", "insert success");
@@ -59,9 +62,10 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map params) {
+    public Map<String, Object> login(@RequestBody Map params) throws Exception {
         String email= (String) params.get("email");
         String password= (String) params.get("password");
+        password=Encrypt.encrypt(password,key);
         Map<String,Object> response = new HashMap<>();
 
         String select_sql="SELECT id,name,email,avatar,gender,phone,address,UNIX_TIMESTAMP(birthday) as birthday from User WHERE email= ? and password=?;";
@@ -84,6 +88,7 @@ public class UserController {
             response.put("code",401);
             response.put("msg","login fail");
         }
+
         System.out.println(response);
         return response;
     }
@@ -96,22 +101,23 @@ public class UserController {
         String select_sql="";
         if(kind==1)
         {
-            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Browse.browse_user = ? and Browse.doc_id = Doc.id ORDER BY Browse.browse_time desc;";
+            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Browse,Doc WHERE Doc.recycle=0 and Browse.browse_user = ? and Browse.doc_id = Doc.id ORDER BY Browse.browse_time desc;";
         }
         if(kind==2)
         {
-            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.create_user = ? ORDER BY Doc.create_time desc;";
+            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.recycle=0 and Doc.create_user = ? ORDER BY Doc.create_time desc;";
         }
         if(kind==3)
         {
-            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
+            select_sql = "SELECT Doc.id,Doc.title,Doc.create_user,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc,Favorite WHERE Doc.recycle=0 and Favorite.favorite_user = ? and Favorite.doc_id = Doc.id ORDER BY Favorite.favorite_time desc;";
         }
         if(kind==4)
         {
             select_sql = "SELECT id,title,create_user,UNIX_TIMESTAMP(create_time) as create_time,modify_user,UNIX_TIMESTAMP(modify_time) as modify_time FROM Doc WHERE recycle=1 and create_user= ?;";
         }
 
-        String select_name_sql="SELECT name FROM User WHERE id=?;";
+        String select1_name_sql="SELECT name as create_user,email as create_user_email FROM User WHERE id=?;";
+        String select2_name_sql="SELECT name as modify_user,email as modify_user_email FROM User WHERE id=?;";
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,id);
         Map<String, Object> tmp=new HashMap<String, Object>();
@@ -120,18 +126,20 @@ public class UserController {
         for (Map<String, Object> map : list) {
             System.out.println(map);
             tmp=new HashMap<String, Object>();
-            int user_id= (int) map.get("create_user");
-            String create_user=jdbcTemplate.queryForMap(select_name_sql,user_id).get("name").toString();
-            user_id= (int) map.get("modify_user");
-            String modify_user=jdbcTemplate.queryForMap(select_name_sql,user_id).get("name").toString();
+            int create_user_id= (int) map.get("create_user");
+            Map<String, Object> create_user=jdbcTemplate.queryForMap(select1_name_sql,create_user_id);
+            int modify_user_id= (int) map.get("modify_user");
+            Map<String, Object> modify_user=jdbcTemplate.queryForMap(select2_name_sql,modify_user_id);
             System.out.println(map.get("create_time"));
             String create_time =format.format(new Date((long)map.get("create_time")*1000L));
             String modify_time =format.format(new Date((long)map.get("modify_time")*1000L));
             tmp.put("doc_id",map.get("id"));
             tmp.put("title",map.get("title"));
-            tmp.put("create_user",create_user);
+            tmp.putAll(create_user);
+            tmp.put("create_user_id",create_user_id);
             tmp.put("create_time",create_time);
-            tmp.put("modify_user",modify_user);
+            tmp.putAll(modify_user);
+            tmp.put("modify_user_id",modify_user_id);
             tmp.put("modify_time",modify_time);
             response.put("doc"+i++,tmp);
         }
@@ -155,6 +163,7 @@ public class UserController {
             String birthday_str=format.format(new Date((long)res.get("birthday")*1000L));
             res.put("birthday",birthday_str);
         }
+        response.putAll(res);
         System.out.println(response);
         return response;
     }
@@ -193,9 +202,10 @@ public class UserController {
     }
 
     @PostMapping("/changepassword")
-    public Map<String, Object> changepassword(@RequestBody Map params) {
+    public Map<String, Object> changepassword(@RequestBody Map params) throws Exception {
         String email= (String) params.get("email");
         String new_password= (String) params.get("new_password");
+        new_password=Encrypt.encrypt(new_password,key);
         Map<String,Object> response = new HashMap<>();
 
         String update_sql = "UPDATE User SET password=? WHERE email=?;";
@@ -210,7 +220,7 @@ public class UserController {
     }
 
     @PostMapping("/forgetpassword")
-    public Map<String, Object> forgetpassword(@RequestBody Map params) {
+    public Map<String, Object> forgetpassword(@RequestBody Map params) throws Exception {
         String email= (String) params.get("email");
         Map<String,Object> response = new HashMap<>();
 
@@ -223,8 +233,8 @@ public class UserController {
             int number=random.nextInt(62);
             sb.append(str.charAt(number));
         }
-
-        int i = jdbcTemplate.update(update_sql,sb.toString(), email);
+        String password=Encrypt.encrypt(sb.toString(),key);
+        int i = jdbcTemplate.update(update_sql,password, email);
         System.out.println("update success: " + i + " rows affected");
         emailSender.sendSimpleMail(email,"Diamond Doc Reset Password","New Password："+sb.toString());
         response.put("code", 200);

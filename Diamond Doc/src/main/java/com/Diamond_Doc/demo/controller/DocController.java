@@ -375,6 +375,42 @@ public class DocController {
         return response;
     }
 
+    @PostMapping("/get_team_doc")
+    public Map<String, Object> get_team_doc(@RequestBody Map params) {
+        Integer id= (Integer) params.get("id");
+        Map<String,Object> response = new LinkedHashMap();
+
+        String select_sql = "SELECT Doc.id as doc_id,Doc.title,Doc.create_user as create_user_id,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user as modify_user_id,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.team_id = ? ORDER BY Doc.create_time desc;";
+        String select_sql_permission ="SELECT permission FROM Permission where doc_id=?";
+        String select1_name_sql="SELECT name as create_user,email as create_user_email FROM User WHERE id=?;";
+        String select2_name_sql="SELECT name as modify_user,email as modify_user_email FROM User WHERE id=?;";
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,id);
+        Map<String, Object> tmp;
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        int i=0;
+        for (Map<String, Object> map : list) {
+            System.out.println(map);
+            tmp=new HashMap<String, Object>();
+            int create_user_id= (int) map.get("create_user_id");
+            int modify_user_id= (int) map.get("modify_user_id");
+            //int premmission=(int)(jdbcTemplate.queryForMap(select_name_sql,doc_id).get("premmission"));
+            Map<String, Object> create_user=jdbcTemplate.queryForMap(select1_name_sql,create_user_id);
+            Map<String, Object> modify_user=jdbcTemplate.queryForMap(select2_name_sql,modify_user_id);
+            String create_time =format.format(new Date((long)map.get("create_time")*1000L));
+            String modify_time =format.format(new Date((long)map.get("modify_time")*1000L));
+            map.replace("create_time",create_time);
+            map.replace("modify_time",modify_time);
+            //tmp.put("premmission",premmission);
+            tmp.putAll(map);
+            tmp.putAll(create_user);
+            tmp.putAll(modify_user);
+            response.put("doc"+i++,tmp);
+        }
+        System.out.println(response);
+        return response;
+    }
+
     @PostMapping("/get_self_permission")
     public Map<String, Object> get_self_permission(@RequestBody Map params) {
         Integer doc_id= (Integer) params.get("id");
