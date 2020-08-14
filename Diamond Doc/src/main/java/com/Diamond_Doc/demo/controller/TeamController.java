@@ -310,7 +310,7 @@ public class TeamController {
                     String create_time_str=format.format(new Date((long)map.get("create_time")*1000L));
                     map.replace("create_time",create_time_str);
                 }
-                map.put("number",Integer.parseInt(jdbcTemplate.queryForList(select3_sql,id).get(0).get("number").toString()));
+                map.put("number",Integer.parseInt(jdbcTemplate.queryForList(select3_sql,(int)map.get("id")).get(0).get("number").toString()));
                 response.put("team"+i++,map);
             }
         }
