@@ -1,6 +1,9 @@
 package com.Diamond_Doc.demo.controller;
 
-
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.stereotype.Service;
 
 
@@ -10,8 +13,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.Scanner;
+import java.util.*;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -141,5 +143,42 @@ public class Encrypt {
         }
         byte[] decryptData = decrypt(data, k);
         return new String(decryptData);
+    }
+
+    //Token
+    //密钥文本，密钥不要泄漏
+    private static String secret = "test-jwt";
+
+    /**
+     * 创建一个带有uid字段的token，过期时间为30分钟
+     * @param id
+     * @return
+     */
+    public static String create(int id,String name,String email,String avatar) {
+        //JWT默认头部alg=HS256，typ=JWT，如果不更换加密方式可以不设置头部
+        Map<String, Object> header = new HashMap();
+        header.put("alg", "HS256");
+        header.put("typ", "JWT");
+
+        String token = JWT.create() //创建一个jwt对象
+                .withHeader(header) //设置Header（头部）
+                .withExpiresAt(new Date(System.currentTimeMillis() + 360L * 60 * 1000))  //设置过期时间为30分钟后，其他官方字段，后续追加即可
+                .withClaim("id", id)  //设置自己的字段，字段名为uid。多个字段在后面继续使用withClaim()方法即可
+                .withClaim("name", name)
+                .withClaim("email", email)
+                .withClaim("avatar", avatar)
+                .sign(Algorithm.HMAC256(secret));   //设置签名，签名算法为头部的HS256，密钥为secret变量的值
+        return token;
+    }
+
+    /**
+     * 解密token
+     * @param token
+     * @return
+     */
+    public static DecodedJWT decoded(String token){
+        JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret)).build();//创建一个加密算法为HS256的校验器
+        DecodedJWT decoded = verifier.verify(token); //校验传入的token，生成一个解密的JWT
+        return decoded;
     }
 }

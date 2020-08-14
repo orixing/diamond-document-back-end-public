@@ -50,6 +50,74 @@ public class TeamController {
         System.out.println(response);
         return response;
     }
+    @PostMapping("/invite")
+    public Map<String, Object> invite(@RequestBody Map params) {
+        Integer team_id= (Integer) params.get("team_id");
+        String email= (String) params.get("email");
+        Integer target=(Integer)params.get("tatget");
+        Map<String,Object> response = new HashMap<>();
+
+        String select1_sql = "SELECT Team.name as name,User.id as id FROM Team,User WHERE create_user=User.id and User.email = ? and Team.id=?;";
+        String select2_sql = "SELECT id FROM Member WHERE team_id=? and member_user=?;";
+        String insert1_sql = "INSERT INTO Message(type,receiver,sender,team_id,team_name) values(?,?,?,?,?);";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email,team_id);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            String team_name=res.get(0).get("name").toString();
+            if(jdbcTemplate.queryForList(select2_sql,team_id,target).size()>0){
+                int i=jdbcTemplate.update(insert1_sql,0,target,id,team_id, team_name);
+                System.out.println("update success: " + i + " rows affected");
+                response.put("code", 200);
+                response.put("msg", "invitation send");
+            }
+            else{
+                response.put("code", 402);
+                response.put("msg", "already in team");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+    @PostMapping("/apply")
+    public Map<String, Object> apply(@RequestBody Map params) {
+        Integer team_id= (Integer) params.get("team_id");
+        String email= (String) params.get("email");
+        Integer target=(Integer)params.get("tatget");
+        Map<String,Object> response = new HashMap<>();
+
+        String select1_sql = "SELECT Team.name as name,User.id as id FROM Team,User WHERE create_user=User.id and User.email = ? and Team.id=?;";
+        String select2_sql = "SELECT id FROM Member WHERE team_id=? and member_user=?;";
+        String insert1_sql = "INSERT INTO Message(type,receiver,sender,team_id,team_name) values(?,?,?,?,?);";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email,team_id);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            String team_name=res.get(0).get("name").toString();
+            if(jdbcTemplate.queryForList(select2_sql,team_id,target).size()>0){
+                int i=jdbcTemplate.update(insert1_sql,0,target,id,team_id, team_name);
+                System.out.println("update success: " + i + " rows affected");
+                response.put("code", 200);
+                response.put("msg", "invitation send");
+            }
+            else{
+                response.put("code", 402);
+                response.put("msg", "already in team");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
     @PostMapping("/jointeam")
     public Map<String, Object> jointeam(@RequestBody Map params) {
         Integer team_id= (Integer) params.get("team_id");
@@ -227,9 +295,9 @@ public class TeamController {
         Map<String,Object> response = new LinkedHashMap<>();
 
         String select1_sql = "SELECT id FROM User WHERE email = ?;";
-        String select2_sql = "SELECT Team.id as id,Team.name as name,Team.create_user as create_user,UNIX_TIMESTAMP(Team.create_time) as create_time" +
-                " FROM Team,Member WHERE Team.id=Member.team_id and Member.member_user=?;";
-        String select3_sql = "SELECT ;";
+        String select2_sql = "SELECT Team.id as id,Team.name as name,User.id as create_user_id,User.name as create_user,UNIX_TIMESTAMP(Team.create_time) as create_time" +
+                " FROM Team,Member,User WHERE Team.create_user=User.id and Team.id=Member.team_id and Member.member_user=?;";
+        String select3_sql = "SELECT count(*) as number FROM Member WHERE team_id=?;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
@@ -237,17 +305,34 @@ public class TeamController {
             int id= (int) res.get(0).get("id"),i=0;
             List<Map<String, Object>> list =jdbcTemplate.queryForList(select2_sql,id);
             for(Map<String, Object> map:list){
-                response.put("team"+i++,map);
                 if(map.get("create_time")!=null){
                     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
                     String create_time_str=format.format(new Date((long)map.get("create_time")*1000L));
                     map.replace("create_time",create_time_str);
                 }
+                map.put("number",(int)jdbcTemplate.queryForList(select3_sql,id).get(0).get("number"));
+                response.put("team"+i++,map);
             }
         }
         else{
             response.put("code", 401);
             response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+    @PostMapping("/getTeamMember")
+    public Map<String, Object> getTeamMember(@RequestBody Map params) {
+        Integer team_id= (Integer) params.get("id");
+        Map<String,Object> response = new LinkedHashMap<>();
+
+        String select1_sql = "SELECT team_id,User.id as member_id,User.name as member_name FROM User,Member WHERE Member.member_user=User.id and Member.team_id=? ORDER BY CONVERT(member_name USING utf-8) DESC;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(select1_sql,team_id);
+        int i=1;
+        for(Map<String, Object> map:list){
+            response.put("member"+i++,map);
         }
         System.out.println(response);
         return response;

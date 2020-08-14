@@ -250,7 +250,7 @@ public class DocController {
                 int i=jdbcTemplate.update(insert_sql,doc_id,id);
                 System.out.println("update success: " + i + " rows affected");
                 response.put("code", 200);
-                response.put("msg", "like doc");
+                response.put("msg", "收藏成功");
             }
             else{
                 response.put("code", 402);
@@ -280,7 +280,7 @@ public class DocController {
             int i=jdbcTemplate.update(delete_sql,doc_id,id);
             System.out.println("update success: " + i + " rows affected");
             response.put("code", 200);
-            response.put("msg", "dislike doc");
+            response.put("msg", "取消收藏");
         }
         else{
             response.put("code", 401);
@@ -490,6 +490,76 @@ public class DocController {
         else{
             response.put("code", 401);
             response.put("msg", "model not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+
+    @PostMapping("/comment")
+    public Map<String, Object> comment(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        String content=(String)params.get("content");
+        Map<String,Object> response = new LinkedHashMap<>();
+
+        String select0_sql = "SELECT id FROM User WHERE email = ?;";
+        String select1_sql = "SELECT Doc.title,User.id as create_user_id,User.name as create_user,team_id FROM Doc,User WHERE Doc.create_user=User.id and doc_id=?;";
+        String select2_sql="SELECT id,name FROM Team WHERE id=?;";
+        String insert1_sql="INSERT INTO Comment(doc_id,comment_user,content) values(?,?,?);";
+        String insert2_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name) values(?,?,?,?,?);";
+        String insert3_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name,team_id,team_name) values(?,?,?,?,?,?,?);";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id"),i=0;
+            List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select1_sql,doc_id);
+            if(tmp.size()>0){
+                i+=jdbcTemplate.update(insert1_sql,doc_id,id,content);
+                if(tmp.get(0).get("team_id")==null)
+                    i+=jdbcTemplate.update(insert2_sql,6,tmp.get(0).get("create_user_id").toString(),id,doc_id,tmp.get(0).get("title").toString());
+                else{
+                    List<Map<String, Object>> t = jdbcTemplate.queryForList(select2_sql,(int)tmp.get(0).get("team_id"));
+                    if(t.size()>0){
+                        i+=jdbcTemplate.update(insert2_sql,5,tmp.get(0).get("create_user_id").toString(),
+                                id,doc_id,tmp.get(0).get("title").toString(),(int)t.get(0).get("id"),t.get(0).get("name").toString());
+                    }
+                    else{
+                        response.put("code", 403);
+                        response.put("msg", "team not found");
+                    }
+                }
+
+            }
+            else{
+                response.put("code", 402);
+                response.put("msg", "doc not found");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+
+    @PostMapping("/get_comment")
+    public Map<String, Object> get_comment(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        Map<String,Object> response = new LinkedHashMap<>();
+
+        String select1_sql = "SELECT Comment.id,Comment.doc_id,User.id as comment_user_id,User.name as comment_user,content,UNIX_TIMESTAMP(comment_time) as comment_time" +
+                "FROM Comment,User WHERE Comment.comment_user=User.id and Comment.doc_id=? ORDER BY comment_time DESC;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(select1_sql,doc_id);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        int i=1;
+        for(Map<String,Object> map:list){
+            String comment_time =format.format(new Date((long)map.get("comment_time")*1000L));
+            map.replace("comment_time",comment_time);
+            response.put("comment"+i++,map);
         }
         System.out.println(response);
         return response;

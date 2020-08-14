@@ -83,6 +83,12 @@ public class UserController {
                 tmp.replace("birthday",birthday_str);
             }
             response.putAll(tmp);
+            int id=(int)tmp.get("id");
+            String name=tmp.get("name").toString();
+            String mail=tmp.get("email").toString();
+            String avatar=tmp.get("avatar").toString();
+            response.put("token",Encrypt.create(id,name,mail,avatar));
+
         }
         else{
             response.put("code",401);
