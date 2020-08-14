@@ -326,7 +326,7 @@ public class TeamController {
         Integer team_id= (Integer) params.get("id");
         Map<String,Object> response = new LinkedHashMap<>();
 
-        String select1_sql = "SELECT team_id,User.id as member_id,User.name as member_name FROM User,Member WHERE Member.member_user=User.id and Member.team_id=? ORDER BY CONVERT(member_name USING utf-8) DESC;";
+        String select1_sql = "SELECT team_id,User.id as member_id,User.name as member_name FROM User,Member WHERE Member.member_user=User.id and Member.team_id=? ORDER BY CONVERT(member_name USING gbk) DESC;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select1_sql,team_id);
