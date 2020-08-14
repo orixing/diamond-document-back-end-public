@@ -503,7 +503,7 @@ public class DocController {
         Map<String,Object> response = new LinkedHashMap<>();
 
         String select0_sql = "SELECT id FROM User WHERE email = ?;";
-        String select1_sql = "SELECT Doc.title,User.id as create_user_id,User.name as create_user,team_id FROM Doc,User WHERE Doc.create_user=User.id and doc_id=?;";
+        String select1_sql = "SELECT Doc.title,User.id as create_user_id,User.name as create_user,team_id FROM Doc,User WHERE Doc.create_user=User.id and Doc.id=?;";
         String select2_sql="SELECT id,name FROM Team WHERE id=?;";
         String insert1_sql="INSERT INTO Comment(doc_id,comment_user,content) values(?,?,?);";
         String insert2_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name) values(?,?,?,?,?);";
@@ -516,20 +516,24 @@ public class DocController {
             List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select1_sql,doc_id);
             if(tmp.size()>0){
                 i+=jdbcTemplate.update(insert1_sql,doc_id,id,content);
-                if(tmp.get(0).get("team_id")==null)
+                if(tmp.get(0).get("team_id")==null){
                     i+=jdbcTemplate.update(insert2_sql,6,tmp.get(0).get("create_user_id").toString(),id,doc_id,tmp.get(0).get("title").toString());
+                    response.put("code", 200);
+                    response.put("msg", "comment success");
+                }
                 else{
                     List<Map<String, Object>> t = jdbcTemplate.queryForList(select2_sql,(int)tmp.get(0).get("team_id"));
                     if(t.size()>0){
-                        i+=jdbcTemplate.update(insert2_sql,5,tmp.get(0).get("create_user_id").toString(),
+                        i+=jdbcTemplate.update(insert3_sql,5,tmp.get(0).get("create_user_id").toString(),
                                 id,doc_id,tmp.get(0).get("title").toString(),(int)t.get(0).get("id"),t.get(0).get("name").toString());
+                        response.put("code", 200);
+                        response.put("msg", "comment success");
                     }
                     else{
                         response.put("code", 403);
                         response.put("msg", "team not found");
                     }
                 }
-
             }
             else{
                 response.put("code", 402);
@@ -550,7 +554,7 @@ public class DocController {
         Map<String,Object> response = new LinkedHashMap<>();
 
         String select1_sql = "SELECT Comment.id,Comment.doc_id,User.id as comment_user_id,User.name as comment_user,content,UNIX_TIMESTAMP(comment_time) as comment_time" +
-                "FROM Comment,User WHERE Comment.comment_user=User.id and Comment.doc_id=? ORDER BY comment_time DESC;";
+                " FROM Comment,User WHERE Comment.comment_user=User.id and Comment.doc_id=? ORDER BY comment_time DESC;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> list = jdbcTemplate.queryForList(select1_sql,doc_id);
