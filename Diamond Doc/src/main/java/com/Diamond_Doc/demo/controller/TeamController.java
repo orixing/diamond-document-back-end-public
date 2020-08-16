@@ -66,7 +66,7 @@ public class TeamController {
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             String team_name=res.get(0).get("name").toString();
-            if(jdbcTemplate.queryForList(select2_sql,team_id,target).size()>0){
+            if(jdbcTemplate.queryForList(select2_sql,team_id,target).size()==0){
                 int i=jdbcTemplate.update(insert1_sql,0,target,id,team_id, team_name);
                 System.out.println("update success: " + i + " rows affected");
                 response.put("code", 200);
@@ -88,11 +88,11 @@ public class TeamController {
     public Map<String, Object> apply(@RequestBody Map params) {
         Integer team_id= (Integer) params.get("team_id");
         String email= (String) params.get("email");
-        Integer target=(Integer)params.get("tatget");
         Map<String,Object> response = new HashMap<>();
 
-        String select1_sql = "SELECT Team.name as name,User.id as id FROM Team,User WHERE create_user=User.id and User.email = ? and Team.id=?;";
+        String select1_sql = "SELECT id FROM User WHERE email = ?;";
         String select2_sql = "SELECT id FROM Member WHERE team_id=? and member_user=?;";
+        String select3_sql = "SELECT Team.name as name,User.id as id FROM Team,User WHERE create_user=User.id and Team.id=?;";
         String insert1_sql = "INSERT INTO Message(type,receiver,sender,team_id,team_name) values(?,?,?,?,?);";
 
         // 通过jdbcTemplate查询数据库
@@ -100,11 +100,19 @@ public class TeamController {
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             String team_name=res.get(0).get("name").toString();
-            if(jdbcTemplate.queryForList(select2_sql,team_id,target).size()>0){
-                int i=jdbcTemplate.update(insert1_sql,0,target,id,team_id, team_name);
-                System.out.println("update success: " + i + " rows affected");
-                response.put("code", 200);
-                response.put("msg", "invitation send");
+            if(jdbcTemplate.queryForList(select2_sql,team_id,id).size()==0){
+                List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select3_sql,team_id);
+                if(tmp.size()>0){
+                    int i=jdbcTemplate.update(insert1_sql,1,(int)tmp.get(0).get("id"),id,team_id, tmp.get(0).get("name").toString());
+                    System.out.println("update success: " + i + " rows affected");
+                    response.put("code", 200);
+                    response.put("msg", "invitation send");
+                }
+                else{
+                    response.put("code", 403);
+                    response.put("msg", "team not found");
+                }
+
             }
             else{
                 response.put("code", 402);
@@ -249,7 +257,7 @@ public class TeamController {
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             if(jdbcTemplate.queryForList(select2_sql,team_id,id).size()>0){
-                int i = jdbcTemplate.update(delete1_sql,team_id,id);
+                int i = jdbcTemplate.update(delete1_sql,team_id,target);
                 if(i!=0){
                     List<Map<String, Object>> docs=jdbcTemplate.queryForList(select3_sql,team_id);
                     for(Map<String, Object> item:docs){
