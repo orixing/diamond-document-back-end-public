@@ -184,17 +184,26 @@ public class DocController {
         Map<String,Object> response = new HashMap<>();
 
         String select0_sql = "SELECT id FROM User WHERE email = ?;";
-        String select1_sql = "SELECT edit_user FROM Edit WHERE doc_id=?;";
+        String select1_sql = "SELECT User.id as id,User.name as name FROM User,Edit WHERE User.id=Edit.edit_user and doc_id=?;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
         if(res.size()>0){
+            int id= (int) res.get(0).get("id"),i=0;
             List<Map<String, Object>> edit = jdbcTemplate.queryForList(select1_sql,doc_id);
             if(edit.size()>0){
-                response.put("flag", 1);
-                response.put("user",(int)edit.get(0).get("edit_user"));
-                response.put("code", 200);
-                response.put("msg", "is editing");
+                if((int)edit.get(0).get("id")==id){
+                    response.put("flag", 2);
+                    response.put("code", 200);
+                    response.put("msg", "is editing");
+                }
+                else{
+                    response.put("flag", 1);
+                    response.put("edit_user_id",(int)edit.get(0).get("id"));
+                    response.put("edit_user",(int)edit.get(0).get("name"));
+                    response.put("code", 200);
+                    response.put("msg", "is editing");
+                }
             }
             else {
                 response.put("flag", 0);
@@ -248,7 +257,8 @@ public class DocController {
     }
     @PostMapping("/share_doc")
     public Map<String, Object> share_doc(@RequestBody Map params) {
-        Integer doc_id= (Integer) params.get("id");
+        System.out.println(params);
+        Integer doc_id= (Integer) params.get("doc_id");
         String email= (String) params.get("email");
         Integer permission=(Integer)params.get("permission");
         Map<String,Object> response = new HashMap<>();
@@ -385,7 +395,7 @@ public class DocController {
         String select2_sql = "SELECT permission FROM Doc WHERE id=?;";
         String select3_sql = "SELECT permission FROM Permission WHERE doc_id=? and user=?;";
         String select4_sql = "SELECT id FROM Browse WHERE doc_id=? and browse_user=?;";
-        String select5_sql = "SELECT id,title,content,create_user,UNIX_TIMESTAMP(create_time) as create_time,modify_user,UNIX_TIMESTAMP(modify_time) as modify_time,modify_times,team_id FROM Doc WHERE id=?;";
+        String select5_sql = "SELECT id,title,content,create_user,UNIX_TIMESTAMP(create_time) as create_time,modify_user,UNIX_TIMESTAMP(modify_time) as modify_time,modify_times,team_id,permission  FROM Doc WHERE id=?;";
         String update1_sql = "INSERT INTO Browse(doc_id,browse_user) values(?,?);";
         String update2_sql = "UPDATE Browse SET browse_user=? WHERE id=?;";
 
@@ -398,6 +408,9 @@ public class DocController {
             boolean is_create = jdbcTemplate.queryForList(select1_sql,id,doc_id).size()>0;
             boolean is_share=(jdbcTemplate.queryForList(select2_sql,doc_id).size()>0)&&(((int)jdbcTemplate.queryForList(select2_sql,doc_id).get(0).get("permission"))&0x01)!=0;
             boolean is_team=(jdbcTemplate.queryForList(select3_sql,doc_id,id).size()>0)&&(((int)jdbcTemplate.queryForList(select3_sql,doc_id,id).get(0).get("permission"))&0x01)!=0;
+            System.out.println(is_create);
+            System.out.println(jdbcTemplate.queryForList(select2_sql,doc_id).get(0));
+            System.out.println(is_team);
             if(is_create||is_share||is_team){
                 if(jdbcTemplate.queryForList(select4_sql,doc_id,id).size()>0){
                     i+=jdbcTemplate.update(update2_sql,id,(int)jdbcTemplate.queryForList(select4_sql,doc_id,id).get(0).get("id"));

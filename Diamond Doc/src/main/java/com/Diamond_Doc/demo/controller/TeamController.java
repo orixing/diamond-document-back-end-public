@@ -246,23 +246,27 @@ public class TeamController {
         Integer target= (Integer) params.get("target");
         Map<String,Object> response = new HashMap<>();
 
+
         String select1_sql = "SELECT id FROM User WHERE email = ?;";
-        String select2_sql = "SELECT id FROM Team WHERE id=? and create_user=?;";
+        String select2_sql = "SELECT id,name FROM Team WHERE id=? and create_user=?;";
         String select3_sql = "SELECT id FROM Doc WHERE team_id=?;";
         String delete1_sql = "DELETE FROM Member WHERE team_id=? and member_user=?;";
         String delete2_sql = "DELETE FROM Permission WHERE doc_id=? and user=?;";
+        String insert_sql = "INSERT INTO Message(type,receiver,sender,team_id,team_name) values(?,?,?,?,?);";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
-            if(jdbcTemplate.queryForList(select2_sql,team_id,id).size()>0){
+            List<Map<String, Object>> tmp=jdbcTemplate.queryForList(select2_sql,team_id,id);
+            if(tmp.size()>0){
                 int i = jdbcTemplate.update(delete1_sql,team_id,target);
                 if(i!=0){
                     List<Map<String, Object>> docs=jdbcTemplate.queryForList(select3_sql,team_id);
                     for(Map<String, Object> item:docs){
                         i+=jdbcTemplate.update(delete2_sql,(int)item.get("id"),id);
                     }
+                    i+=jdbcTemplate.update(insert_sql,7,target,id,team_id,tmp.get(0).get("name").toString());
                     System.out.println("update success: " + i + " rows affected");
                     response.put("code", 200);
                     response.put("msg", "dismiss member success");
@@ -285,12 +289,12 @@ public class TeamController {
     }
 
     @PostMapping("/searchTeam")
-    public Map<String, Object> searchTeam(@RequestBody Map params) {
+    public List<Map<String, Object>> searchTeam(@RequestBody Map params) {
         String team_name= (String) params.get("team_name");
         Map<String,Object> response = new LinkedHashMap<>();
         Map<String, Object> tmp=new HashMap<String, Object>();
 
-        String select_sql = "SELECT Team.id as id,Team.name as name,User.name as create_user_name FROM Team,User " +
+        String select_sql = "SELECT Team.id as id,Team.name as team_name,User.name as create_user_name FROM Team,User " +
                 "WHERE Team.name LIKE CONCAT('%',CONCAT(?,'%')) and User.id=Team.create_user;";
         System.out.println(select_sql);
         int i=0;
@@ -299,13 +303,13 @@ public class TeamController {
         for (Map<String, Object> map : list){
             tmp=new HashMap<String, Object>();
             int id = (int) map.get("id");
-            tmp.put("id",(int) map.get("id"));
+            /*tmp.put("id",(int) map.get("id"));
             tmp.put("team_name",map.get("name").toString());
             tmp.put("create_user_name",map.get("create_user_name").toString());
-            response.put("team"+i++,tmp);
+            response.put("team"+i++,tmp);*/
         }
         System.out.println(response);
-        return response;
+        return list;
     }
 
     @PostMapping("/myTeam")
