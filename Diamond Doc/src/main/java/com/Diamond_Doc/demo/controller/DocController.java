@@ -128,25 +128,45 @@ public class DocController {
         String email= (String) params.get("email");
         Map<String,Object> response = new HashMap<>();
 
-        String select_sql = "SELECT id FROM User WHERE email = ?;";
+        String select1_sql = "SELECT id FROM User WHERE email = ?;";
+        String select2_sql = "SELECT name,create_user FROM Team WHERE id = ?;";
+        String select3_sql="SELECT create_user FROM Doc WHERE id=?;";
         String update_sql = "UPDATE Doc SET title=?,content=?,modify_user=?,modify_times=modify_times+1 where id=?;";
         String insert_sql = "INSERT INTO Modify(doc_id,modify_user) values(?,?);";
+        String insert2_sql="INSERT INTO Message(type,receiver,sender,doc_id,doc_name) values(?,?,?,?,?)";
+        String insert3_sql="INSERT INTO Message(type,receiver,sender,doc_id,doc_name,team_id,team_name) values(?,?,?,?,?,?,?)";
         String delete_sql = "DELETE FROM Edit WHERE doc_id=? and edit_user=?;";
 
         // 通过jdbcTemplate查询数据库
-        List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email);
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
         if(res.size()>0){
             int id= (int) res.get(0).get("id"),i=0;
             i+=jdbcTemplate.update(update_sql,title,content,id,doc_id);
             i+=jdbcTemplate.update(insert_sql,doc_id,id);
             i+=jdbcTemplate.update(delete_sql,doc_id,id);
             if(team_id==0){
-                response.put("code", 200);
-                response.put("msg", "personal doc modified");
+                List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select3_sql,doc_id);
+                if(tmp.size()>0){
+                    i+=jdbcTemplate.update(insert2_sql,4,tmp.get(0).get("create_user").toString(),id,doc_id,title);
+                    response.put("code", 200);
+                    response.put("msg", "personal doc modified");
+                }
+                else{
+                    response.put("code", 402);
+                    response.put("msg", "doc not found");
+                }
             }
             else{
-                response.put("code", 200);
-                response.put("msg", "team doc modified");
+                List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select2_sql,team_id);
+                if(tmp.size()>0){
+                    i+=jdbcTemplate.update(insert3_sql,4,tmp.get(0).get("create_user").toString(),id,doc_id,title,team_id,tmp.get(0).get("name").toString());
+                    response.put("code", 200);
+                    response.put("msg", "team doc modified");
+                }
+                else{
+                    response.put("code", 403);
+                    response.put("msg", "team not found");
+                }
             }
             System.out.println("update success: " + i + " rows affected");
         }
@@ -226,7 +246,40 @@ public class DocController {
         System.out.println(response);
         return response;
     }
+    @PostMapping("/share_doc")
+    public Map<String, Object> share_doc(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        Integer permission=(Integer)params.get("permission");
+        Map<String,Object> response = new HashMap<>();
 
+        String select0_sql = "SELECT id FROM User WHERE email = ?;";
+        String select1_sql = "SELECT id FROM Doc WHERE create_user= ? and id=?;";
+        String update_sql = "UPDATE Doc SET permission=? WHERE id=?;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select1_sql,id,doc_id);
+            if(tmp.size()>0){
+                int i=jdbcTemplate.update(update_sql,permission,doc_id);
+                System.out.println("update success: " + i + " rows affected");
+                response.put("code", 200);
+                response.put("msg", "设置分享状态成功");
+            }
+            else{
+                response.put("code", 402);
+                response.put("msg", "permission denied");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
     @PostMapping("/like_doc")
     public Map<String, Object> like_doc(@RequestBody Map params) {
         Integer doc_id= (Integer) params.get("id");
@@ -504,7 +557,7 @@ public class DocController {
 
         String select0_sql = "SELECT id FROM User WHERE email = ?;";
         String select1_sql = "SELECT Doc.title,User.id as create_user_id,User.name as create_user,team_id FROM Doc,User WHERE Doc.create_user=User.id and Doc.id=?;";
-        String select2_sql="SELECT id,name FROM Team WHERE id=?;";
+        String select2_sql="SELECT id,name,create_user FROM Team WHERE id=?;";
         String insert1_sql="INSERT INTO Comment(doc_id,comment_user,content) values(?,?,?);";
         String insert2_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name) values(?,?,?,?,?);";
         String insert3_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name,team_id,team_name) values(?,?,?,?,?,?,?);";
@@ -524,7 +577,7 @@ public class DocController {
                 else{
                     List<Map<String, Object>> t = jdbcTemplate.queryForList(select2_sql,(int)tmp.get(0).get("team_id"));
                     if(t.size()>0){
-                        i+=jdbcTemplate.update(insert3_sql,5,tmp.get(0).get("create_user_id").toString(),
+                        i+=jdbcTemplate.update(insert3_sql,5,t.get(0).get("create_user").toString(),
                                 id,doc_id,tmp.get(0).get("title").toString(),(int)t.get(0).get("id"),t.get(0).get("name").toString());
                         response.put("code", 200);
                         response.put("msg", "comment success");

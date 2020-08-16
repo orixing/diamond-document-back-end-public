@@ -162,7 +162,7 @@ public class Encrypt {
 
         String token = JWT.create() //创建一个jwt对象
                 .withHeader(header) //设置Header（头部）
-                .withExpiresAt(new Date(System.currentTimeMillis() + 360L * 60 * 1000))  //设置过期时间为30分钟后，其他官方字段，后续追加即可
+                //.withExpiresAt(new Date(System.currentTimeMillis() + 360L * 60 * 1000))  //设置过期时间为30分钟后，其他官方字段，后续追加即可
                 .withClaim("id", id)  //设置自己的字段，字段名为uid。多个字段在后面继续使用withClaim()方法即可
                 .withClaim("name", name)
                 .withClaim("email", email)

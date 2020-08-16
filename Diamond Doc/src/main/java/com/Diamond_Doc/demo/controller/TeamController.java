@@ -161,23 +161,33 @@ public class TeamController {
         String email= (String) params.get("email");
         Map<String,Object> response = new HashMap<>();
 
-        String select_sql = "SELECT id FROM User WHERE email = ?;";
+        String select1_sql = "SELECT id FROM User WHERE email = ?;";
+        String select2_sql = "SELECT name,create_user FROM Team WHERE id=?;";
         String delete_sql = "DELETE FROM Member WHERE team_id=? and member_user=?;";
+        String insert_sql = "INSERT INTO Message(type,receiver,sender,team_id,team_name) values(?,?,?,?,?);";
 
         // 通过jdbcTemplate查询数据库
-        List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email);
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             int i = jdbcTemplate.update(delete_sql,team_id, id);
-            System.out.println("update success: " + i + " rows affected");
             if(i==0){
                 response.put("code", 402);
                 response.put("msg", "not in the team");
             }
             else{
-                response.put("code", 200);
-                response.put("msg", "quit team success");
+                List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select2_sql,team_id);
+                if(tmp.size()>0){
+                    i+=jdbcTemplate.update(insert_sql,2,tmp.get(0).get("create_user").toString(),id,team_id,tmp.get(0).get("name").toString());
+                    response.put("code", 200);
+                    response.put("msg", "quit team success");
+                }
+                else{
+                    response.put("code", 403);
+                    response.put("msg", "team not found");
+                }
             }
+            System.out.println("update success: " + i + " rows affected");
         }
         else{
             response.put("code", 401);
@@ -196,14 +206,15 @@ public class TeamController {
         String select2_sql = "SELECT id FROM Team WHERE id=? and create_user=?;";
         String delete1_sql = "DELETE FROM Member WHERE team_id=?;";
         String delete2_sql = "DELETE FROM Doc WHERE team_id=?;";
-        String delete3_sql = "DELETE FROM Team WHERE team_id=?;";
+        String delete3_sql = "DELETE FROM Team WHERE id=?;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
         if(res.size()>0){
             int id= (int) res.get(0).get("id");
             if(jdbcTemplate.queryForList(select2_sql,team_id,id).size()>0){
-                int i = jdbcTemplate.update(delete3_sql,team_id);
+                int i = jdbcTemplate.update(delete2_sql,team_id);
+                i += jdbcTemplate.update(delete3_sql,team_id);
                 System.out.println("update success: " + i + " rows affected");
                 response.put("code", 200);
                 response.put("msg", "eliminate team success");

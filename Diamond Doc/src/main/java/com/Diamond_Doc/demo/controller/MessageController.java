@@ -25,8 +25,10 @@ public class MessageController {
     private EmailSender emailSender;
 
     @PostMapping("/get_message")
-    public Map<String, Object> get_message(@RequestBody Map params) {
+    public List<Map<String, Object>> get_message(@RequestBody Map params) {
         String token=(String) params.get("token");
+        //token=token.substring(1,token.length()-1);
+        System.out.println(token);
         DecodedJWT decoded = Encrypt.decoded(token);
         int receiver_id=decoded.getClaim("id").asInt();
         Map<String,Object> response = new LinkedHashMap<>();
@@ -49,8 +51,35 @@ public class MessageController {
                 map.remove("doc_id");
                 map.remove("doc_name");
             }
-            response.put("message"+i++,map);
+            //response.put("message"+i++,map);
         }
+        System.out.println(response);
+        return list;
+    }
+    @PostMapping("/read_message")
+    public Map<String, Object> read_message(@RequestBody Map params) {
+        int status= (int) params.get("status");
+        int message_id=(int)params.get("id");
+        Map<String,Object> response = new HashMap<>();
+
+        String update_sql="UPDATE Message SET status=? WHERE id=?;";
+
+        // 通过jdbcTemplate查询数据库
+        int i = jdbcTemplate.update(update_sql,status,message_id);
+        System.out.println("update success: " + i + " rows affected");
+        System.out.println(response);
+        return response;
+    }
+    @PostMapping("/delete_message")
+    public Map<String, Object> delete_message(@RequestBody Map params) {
+        int message_id=(int)params.get("id");
+        Map<String,Object> response = new HashMap<>();
+
+        String update_sql="DELETE FROM Message WHERE id=?;";
+
+        // 通过jdbcTemplate查询数据库
+        int i = jdbcTemplate.update(update_sql,message_id);
+        System.out.println("update success: " + i + " rows affected");
         System.out.println(response);
         return response;
     }
