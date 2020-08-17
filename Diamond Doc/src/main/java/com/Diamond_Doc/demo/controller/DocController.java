@@ -9,10 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @CrossOrigin
 @RestController
@@ -104,7 +101,7 @@ public class DocController {
                 int key=Integer.parseInt(jdbcTemplate.queryForMap("SELECT LAST_INSERT_ID() as 'key';").get("key").toString());
                 List<Map<String, Object>> members=jdbcTemplate.queryForList(select1_sql,team_id);
                 for(Map<String, Object> item:members){
-                    i+=jdbcTemplate.update(insert3_sql,key,(int)item.get("user"),15);
+                    i+=jdbcTemplate.update(insert3_sql,key,(int)item.get("user"),7);
                 }
                 response.put("doc_id",key);
                 response.put("code", 200);
@@ -200,7 +197,7 @@ public class DocController {
                 else{
                     response.put("flag", 1);
                     response.put("edit_user_id",(int)edit.get(0).get("id"));
-                    response.put("edit_user",(int)edit.get(0).get("name"));
+                    response.put("edit_user",edit.get(0).get("name").toString());
                     response.put("code", 200);
                     response.put("msg", "is editing");
                 }
@@ -228,6 +225,7 @@ public class DocController {
         String select1_sql = "SELECT id FROM Doc WHERE create_user= ? and id=?;";
         String select2_sql = "SELECT permission FROM Doc WHERE id=?;";
         String select3_sql = "SELECT permission FROM Permission WHERE doc_id=? and user=?;";
+        String select4_sql = "SELECT edit_user FROM Edit WHERE doc_id=?;";
         String insert_sql = "INSERT INTO Edit(doc_id,edit_user) values(?,?);";
 
         // 通过jdbcTemplate查询数据库
@@ -238,10 +236,16 @@ public class DocController {
             boolean is_share=(jdbcTemplate.queryForList(select2_sql,doc_id).size()>0)&&(((int)jdbcTemplate.queryForList(select2_sql,doc_id).get(0).get("permission"))&0x02)!=0;
             boolean is_team=(jdbcTemplate.queryForList(select3_sql,doc_id,id).size()>0)&&(((int)jdbcTemplate.queryForList(select3_sql,doc_id,id).get(0).get("permission"))&0x02)!=0;
             if(is_create||is_share||is_team){
-                int i=jdbcTemplate.update(insert_sql,doc_id,id);
-                System.out.println("update success: " + i + " rows affected");
-                response.put("code", 200);
-                response.put("msg", "doc editing");
+                if(jdbcTemplate.queryForList(select4_sql,doc_id).size()>0&&(int)jdbcTemplate.queryForList(select4_sql,doc_id).get(0).get("edit_user")!=id){
+                    response.put("code", 403);
+                    response.put("msg", "someone is editing");
+                }
+                else{
+                    int i=jdbcTemplate.update(insert_sql,doc_id,id);
+                    System.out.println("update success: " + i + " rows affected");
+                    response.put("code", 200);
+                    response.put("msg", "doc editing");
+                }
             }
             else{
                 response.put("code", 402);
@@ -518,26 +522,36 @@ public class DocController {
         return response;
     }
     @PostMapping("/get_team_permission")
-    public Map<String, Object> get_team_permission(@RequestBody Map params) {
+    public List<Map<String, Object>> get_team_permission(@RequestBody Map params) {
         Integer doc_id= (Integer) params.get("doc_id");
         Integer team_id= (Integer) params.get("team_id");
-        Map<String,Object> response = new LinkedHashMap<>();
         Map<String,Object> tmp = new HashMap<>();
 
         String select1_sql = "SELECT member_user as member From Member WHERE team_id=?;";
-        String select2_sql = "SELECT User.id as id,User.name as name,permission FROM Permission,User WHERE User.id=Permission.user and doc_id=? and user=?;";
+        String select2_sql = "SELECT User.id as id,User.name as name,permission FROM Permission,User WHERE User.id=Permission.user and doc_id=? ";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,team_id);
         int i=1;
-        for(Map<String,Object> map:res){
-            tmp=jdbcTemplate.queryForMap(select2_sql,doc_id,map.get("member").toString());
-            response.put("member"+i++,tmp);
+        return jdbcTemplate.queryForList(select2_sql,doc_id);
+    }
+    @PostMapping("/set_team_permission")
+    public Map<String, Object> set_team_permission(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("doc_id");
+        Integer team_id= (Integer) params.get("team_id");
+        List<Map<String, Object>> data= (List<Map<String, Object>>) params.get("data");
+        Map<String,Object> response = new LinkedHashMap<>();
+
+        String update_sql="UPDATE Permission SET permission=? where doc_id=? and user=?;";
+        int i=0;
+        for(Map<String, Object> map:data){
+            i+=jdbcTemplate.update(update_sql,(int)map.get("permission"),doc_id,(int)map.get("id"));
         }
-        System.out.println(response);
+        System.out.println("update success: " + i + " rows affected");
+        response.put("code", 200);
+        response.put("msg", "set permission success");
         return response;
     }
-
     @PostMapping("/get_model_content")
     public Map<String, Object> get_model_content(@RequestBody Map params) {
         Integer moedl_id= (Integer) params.get("id");

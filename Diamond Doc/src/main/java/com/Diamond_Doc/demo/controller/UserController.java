@@ -191,14 +191,16 @@ public class UserController {
 
 
         // 通过jdbcTemplate查询数据库
-        Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email);
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email);
 
-        if(res.isEmpty()){
+        if(res.size()==0){
             response.put("code",401);
             response.put("msg","user not found");
         }
         else{
+            int id=(int)res.get(0).get("id");
             int i = jdbcTemplate.update(update_sql,name,avatar,gender,phone,day,address,email);
+            response.put("token",Encrypt.create(id,name,email,avatar));
             System.out.println("update success: " + i + " rows affected");
             response.put("code", 200);
             response.put("msg", "change info success");
@@ -248,7 +250,28 @@ public class UserController {
         System.out.println(response);
         return response;
     }
+    @PostMapping("/searchUser")
+    public List<Map<String, Object>> searchTeam(@RequestBody Map params) {
+        String user_name= (String) params.get("user_name");
+        Map<String,Object> response = new LinkedHashMap<>();
+        Map<String, Object> tmp=new HashMap<String, Object>();
 
+        String select_sql = "SELECT id,name,email FROM User " +
+                "WHERE name LIKE CONCAT('%',CONCAT(?,'%')) or email LIKE CONCAT('%',CONCAT(?,'%'));";
+        int i=0;
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,user_name);
+        for (Map<String, Object> map : list){
+            tmp=new HashMap<String, Object>();
+            int id = (int) map.get("id");
+            /*tmp.put("id",(int) map.get("id"));
+            tmp.put("team_name",map.get("name").toString());
+            tmp.put("create_user_name",map.get("create_user_name").toString());
+            response.put("team"+i++,tmp);*/
+        }
+        System.out.println(response);
+        return list;
+    }
 
     @PostMapping("/verification")
     public Map<String, Object> verification(@RequestBody Map params) {
