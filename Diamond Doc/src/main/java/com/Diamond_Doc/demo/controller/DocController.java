@@ -44,6 +44,36 @@ public class DocController {
         System.out.println(response);
         return response;
     }
+    @PostMapping("/delete")
+    public Map<String, Object> delete(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        Map<String,Object> response = new HashMap<>();
+
+        String select_sql = "SELECT Doc.recycle as recycle FROM Doc,User WHERE Doc.create_user=User.id and User.email = ? and Doc.id=?;";
+        String update_sql = "DELETE FROM Doc WHERE id=?;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email,doc_id);
+        if(res.size()>0){
+            if((int)res.get(0).get("recycle")==1){
+                int i = jdbcTemplate.update(update_sql,doc_id);
+                System.out.println("update success: " + i + " rows affected");
+                response.put("code", 200);
+                response.put("msg", "put in recycle bin");
+            }
+            else{
+                response.put("code", 200);
+                response.put("msg", "not in recycle bin");
+            }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "permission denied");
+        }
+        System.out.println(response);
+        return response;
+    }
 
     @PostMapping("/recover")
     public Map<String, Object> recover(@RequestBody Map params) {
@@ -174,6 +204,26 @@ public class DocController {
         System.out.println(response);
         return response;
     }
+    @PostMapping("/get_modify_history")
+    public Map<String, Object> get_modify_history(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        Map<String,Object> response = new HashMap<>();
+
+        String select0_sql = "SELECT User.id as modify_user_id,User.name as modify_user,User.email as modify_user_email,UNIX_TIMESTAMP(modify_time) as modify_time FROM Modify,User WHERE Modify.modify_user=User.id and doc_id = ? ORDER BY modify_time DESC;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,doc_id);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for(Map<String, Object> map:res){
+            map.replace("modify_time",format.format(new Date((long)map.get("modify_time")*1000L)));
+        }
+        response.put("code", 200);
+        response.put("msg", "get_modify_history");
+        response.put("list",res);
+        System.out.println(response);
+        return response;
+    }
+
     @PostMapping("/check_edit")
     public Map<String, Object> check_edit(@RequestBody Map params) {
         Integer doc_id= (Integer) params.get("id");
@@ -251,6 +301,31 @@ public class DocController {
                 response.put("code", 402);
                 response.put("msg", "permission denied");
             }
+        }
+        else{
+            response.put("code", 401);
+            response.put("msg", "user not found");
+        }
+        System.out.println(response);
+        return response;
+    }
+    @PostMapping("/cancel_edit_doc")
+    public Map<String, Object> cancel_edit_doc(@RequestBody Map params) {
+        Integer doc_id= (Integer) params.get("id");
+        String email= (String) params.get("email");
+        Map<String,Object> response = new HashMap<>();
+
+        String select0_sql = "SELECT id FROM User WHERE email = ?;";
+        String delete_sql="DELETE FROM Edit WHERE doc_id=? and edit_user=?;";
+
+        // 通过jdbcTemplate查询数据库
+        List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
+        if(res.size()>0){
+            int id= (int) res.get(0).get("id");
+            int i=jdbcTemplate.update(delete_sql,doc_id,id);
+            System.out.println("update success: " + i + " rows affected");
+            response.put("code", 200);
+            response.put("msg", "cancel editing");
         }
         else{
             response.put("code", 401);
@@ -401,7 +476,7 @@ public class DocController {
         String select4_sql = "SELECT id FROM Browse WHERE doc_id=? and browse_user=?;";
         String select5_sql = "SELECT id,title,content,create_user,UNIX_TIMESTAMP(create_time) as create_time,modify_user,UNIX_TIMESTAMP(modify_time) as modify_time,modify_times,team_id,permission  FROM Doc WHERE id=?;";
         String update1_sql = "INSERT INTO Browse(doc_id,browse_user) values(?,?);";
-        String update2_sql = "UPDATE Browse SET browse_user=? WHERE id=?;";
+        String update2_sql = "UPDATE Browse SET browse_time =CURRENT_TIMESTAMP WHERE id=?;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select0_sql,email);
@@ -417,7 +492,7 @@ public class DocController {
             System.out.println(is_team);
             if(is_create||is_share||is_team){
                 if(jdbcTemplate.queryForList(select4_sql,doc_id,id).size()>0){
-                    i+=jdbcTemplate.update(update2_sql,id,(int)jdbcTemplate.queryForList(select4_sql,doc_id,id).get(0).get("id"));
+                    i+=jdbcTemplate.update(update2_sql,(int)jdbcTemplate.queryForList(select4_sql,doc_id,id).get(0).get("id"));
                 }
                 else{
                     i+=jdbcTemplate.update(update1_sql,doc_id,id);
@@ -633,7 +708,7 @@ public class DocController {
         Integer doc_id= (Integer) params.get("id");
         Map<String,Object> response = new LinkedHashMap<>();
 
-        String select1_sql = "SELECT Comment.id,Comment.doc_id,User.id as comment_user_id,User.name as comment_user,content,UNIX_TIMESTAMP(comment_time) as comment_time" +
+        String select1_sql = "SELECT Comment.id,Comment.doc_id,User.id as comment_user_id,User.name as comment_user,User.email as comment_user_email,content,UNIX_TIMESTAMP(comment_time) as comment_time" +
                 " FROM Comment,User WHERE Comment.comment_user=User.id and Comment.doc_id=? ORDER BY comment_time DESC;";
 
         // 通过jdbcTemplate查询数据库

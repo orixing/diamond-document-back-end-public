@@ -51,7 +51,7 @@ public class TeamController {
     public Map<String, Object> invite(@RequestBody Map params) {
         Integer team_id= (Integer) params.get("team_id");
         String email= (String) params.get("email");
-        Integer target=(Integer)params.get("tatget");
+        Integer target=(Integer)params.get("target");
         Map<String,Object> response = new HashMap<>();
 
         String select1_sql = "SELECT Team.name as name,User.id as id FROM Team,User WHERE create_user=User.id and User.email = ? and Team.id=?;";
@@ -252,6 +252,7 @@ public class TeamController {
         String delete1_sql = "DELETE FROM Member WHERE team_id=? and member_user=?;";
         String delete2_sql = "DELETE FROM Permission WHERE doc_id=? and user=?;";
         String insert_sql = "INSERT INTO Message(type,receiver,sender,team_id,team_name) values(?,?,?,?,?);";
+        String update_sql = "UPDATE Doc SET create_user=?,create_time=CURRENT_TIMESTAMP WHERE team_id=? and create_user=?;";
 
         // 通过jdbcTemplate查询数据库
         List<Map<String, Object>> res = jdbcTemplate.queryForList(select1_sql,email);
@@ -271,6 +272,7 @@ public class TeamController {
                             i+=jdbcTemplate.update(delete2_sql,(int)item.get("id"),id);
                         }
                         i+=jdbcTemplate.update(insert_sql,7,target,id,team_id,tmp.get(0).get("name").toString());
+                        i+=jdbcTemplate.update(update_sql,id,team_id,target);
                         System.out.println("update success: " + i + " rows affected");
                         response.put("code", 200);
                         response.put("msg", "dismiss member success");
