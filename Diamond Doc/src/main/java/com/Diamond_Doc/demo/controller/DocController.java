@@ -158,6 +158,7 @@ public class DocController {
         String select1_sql = "SELECT id FROM User WHERE email = ?;";
         String select2_sql = "SELECT name,create_user FROM Team WHERE id = ?;";
         String select3_sql="SELECT create_user FROM Doc WHERE id=?;";
+        String select4_sql="SELECT member_user FROM Member WHERE team_id=? and member_user!=?;";
         String update_sql = "UPDATE Doc SET title=?,content=?,modify_user=?,modify_times=modify_times+1 where id=?;";
         String insert_sql = "INSERT INTO Modify(doc_id,modify_user) values(?,?);";
         String insert2_sql="INSERT INTO Message(type,receiver,sender,doc_id,doc_name) values(?,?,?,?,?)";
@@ -174,7 +175,8 @@ public class DocController {
             if(team_id==0){
                 List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select3_sql,doc_id);
                 if(tmp.size()>0){
-                    i+=jdbcTemplate.update(insert2_sql,4,tmp.get(0).get("create_user").toString(),id,doc_id,title);
+                    if((int)tmp.get(0).get("create_user")!=id)
+                        i+=jdbcTemplate.update(insert2_sql,4,(int)tmp.get(0).get("create_user"),id,doc_id,title);
                     response.put("code", 200);
                     response.put("msg", "personal doc modified");
                 }
@@ -186,7 +188,10 @@ public class DocController {
             else{
                 List<Map<String, Object>> tmp = jdbcTemplate.queryForList(select2_sql,team_id);
                 if(tmp.size()>0){
-                    i+=jdbcTemplate.update(insert3_sql,4,tmp.get(0).get("create_user").toString(),id,doc_id,title,team_id,tmp.get(0).get("name").toString());
+                    List<Map<String, Object>> member=jdbcTemplate.queryForList(select4_sql,team_id,id);
+                    for(Map<String, Object> map:member){
+                        i+=jdbcTemplate.update(insert3_sql,3,(int)map.get("member_user"),id,doc_id,title,team_id,tmp.get(0).get("name").toString());
+                    }
                     response.put("code", 200);
                     response.put("msg", "team doc modified");
                 }
@@ -525,7 +530,7 @@ public class DocController {
         Integer id= (Integer) params.get("id");
         Map<String,Object> response = new LinkedHashMap();
 
-        String select_sql = "SELECT Doc.id as doc_id,Doc.title,Doc.create_user as create_user_id,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user as modify_user_id,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.team_id = ? ORDER BY Doc.create_time desc;";
+        String select_sql = "SELECT Doc.id as doc_id,Doc.title,Doc.create_user as create_user_id,UNIX_TIMESTAMP(Doc.create_time) as create_time,Doc.modify_user as modify_user_id,UNIX_TIMESTAMP(Doc.modify_time) as modify_time FROM Doc WHERE Doc.recycle=0 and Doc.team_id = ? ORDER BY Doc.create_time desc;";
         String select_sql_permission ="SELECT permission FROM Permission where doc_id=?";
         String select1_name_sql="SELECT name as create_user,email as create_user_email FROM User WHERE id=?;";
         String select2_name_sql="SELECT name as modify_user,email as modify_user_email FROM User WHERE id=?;";
@@ -660,6 +665,7 @@ public class DocController {
         String select0_sql = "SELECT id FROM User WHERE email = ?;";
         String select1_sql = "SELECT Doc.title,User.id as create_user_id,User.name as create_user,team_id FROM Doc,User WHERE Doc.create_user=User.id and Doc.id=?;";
         String select2_sql="SELECT id,name,create_user FROM Team WHERE id=?;";
+        String select3_sql="SELECT member_user FROM Member WHERE team_id=? and member_user!=?;";
         String insert1_sql="INSERT INTO Comment(doc_id,comment_user,content) values(?,?,?);";
         String insert2_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name) values(?,?,?,?,?);";
         String insert3_sql = "INSERT INTO Message(type,receiver,sender,doc_id,doc_name,team_id,team_name) values(?,?,?,?,?,?,?);";
@@ -672,15 +678,19 @@ public class DocController {
             if(tmp.size()>0){
                 i+=jdbcTemplate.update(insert1_sql,doc_id,id,content);
                 if(tmp.get(0).get("team_id")==null){
-                    i+=jdbcTemplate.update(insert2_sql,6,tmp.get(0).get("create_user_id").toString(),id,doc_id,tmp.get(0).get("title").toString());
+                    if((int)tmp.get(0).get("create_user_id")!=id)
+                    i+=jdbcTemplate.update(insert2_sql,6,(int)tmp.get(0).get("create_user_id"),id,doc_id,tmp.get(0).get("title").toString());
                     response.put("code", 200);
                     response.put("msg", "comment success");
                 }
                 else{
                     List<Map<String, Object>> t = jdbcTemplate.queryForList(select2_sql,(int)tmp.get(0).get("team_id"));
                     if(t.size()>0){
-                        i+=jdbcTemplate.update(insert3_sql,5,t.get(0).get("create_user").toString(),
-                                id,doc_id,tmp.get(0).get("title").toString(),(int)t.get(0).get("id"),t.get(0).get("name").toString());
+                        List<Map<String, Object>> member = jdbcTemplate.queryForList(select3_sql,(int)tmp.get(0).get("team_id"),id);
+                        for(Map<String, Object> map:member) {
+                            i += jdbcTemplate.update(insert3_sql, 5, (int) map.get("member_user"),
+                                    id, doc_id, tmp.get(0).get("title").toString(), (int) t.get(0).get("id"), t.get(0).get("name").toString());
+                        }
                         response.put("code", 200);
                         response.put("msg", "comment success");
                     }

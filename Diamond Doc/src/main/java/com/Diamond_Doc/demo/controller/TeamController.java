@@ -269,7 +269,7 @@ public class TeamController {
                     if(i!=0){
                         List<Map<String, Object>> docs=jdbcTemplate.queryForList(select3_sql,team_id);
                         for(Map<String, Object> item:docs){
-                            i+=jdbcTemplate.update(delete2_sql,(int)item.get("id"),id);
+                            i+=jdbcTemplate.update(delete2_sql,(int)item.get("id"),target);
                         }
                         i+=jdbcTemplate.update(insert_sql,7,target,id,team_id,tmp.get(0).get("name").toString());
                         i+=jdbcTemplate.update(update_sql,id,team_id,target);

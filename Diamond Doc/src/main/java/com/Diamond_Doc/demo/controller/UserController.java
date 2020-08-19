@@ -182,7 +182,10 @@ public class UserController {
         Integer gender= (Integer) params.get("gender");
         String phone= (String) params.get("phone");
         String birthday= (String) params.get("birthday");
-        String day = birthday.substring(0,10);
+        String day=null;
+        if(birthday!=null){
+            day = birthday.substring(0,10);
+        }
         String address= (String) params.get("address");
         Map<String,Object> response = new HashMap<>();
 
@@ -260,7 +263,7 @@ public class UserController {
                 "WHERE name LIKE CONCAT('%',CONCAT(?,'%')) or email LIKE CONCAT('%',CONCAT(?,'%'));";
         int i=0;
         // 通过jdbcTemplate查询数据库
-        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,user_name);
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(select_sql,user_name,user_name);
         for (Map<String, Object> map : list){
             tmp=new HashMap<String, Object>();
             int id = (int) map.get("id");
