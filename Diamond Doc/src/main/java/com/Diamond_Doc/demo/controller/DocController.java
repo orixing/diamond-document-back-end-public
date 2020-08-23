@@ -578,7 +578,7 @@ public class DocController {
             int id= (int) res.get(0).get("id"),i=0;
             if(jdbcTemplate.queryForList(select1_sql,id,doc_id).size()>0){
                 response.put("doc_id", doc_id);
-                response.put("permission",15);
+                response.put("permission",7);
                 response.put("msg", "get permission");
                 response.put("code",200);
             }
@@ -589,6 +589,8 @@ public class DocController {
                 if(jdbcTemplate.queryForList(select3_sql,doc_id,id).size()>0)
                     team=(int)jdbcTemplate.queryForList(select3_sql,doc_id,id).get(0).get("permission");
                 response.put("doc_id", doc_id);
+                response.put("share",share);
+                response.put("team",team);
                 response.put("permission",share|team);
                 response.put("msg", "get permission");
                 response.put("code",200);

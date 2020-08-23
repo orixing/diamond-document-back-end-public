@@ -291,9 +291,9 @@ public class UserController {
             response.put("msg", "send email success");
         }
         else{
-            Map<String, Object> res = jdbcTemplate.queryForMap(select_sql,email);
+            List<Map<String, Object>> res = jdbcTemplate.queryForList(select_sql,email);
 
-            if(res.isEmpty()){
+            if(res.size()==0){
                 response.put("code",401);
                 response.put("msg","user not found");
             }
